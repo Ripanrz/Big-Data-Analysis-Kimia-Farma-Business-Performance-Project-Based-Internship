@@ -1,22 +1,6 @@
-CREATE OR REPLACE TABLE dataset_kimia_farma_rakamin.kf_analisisQ AS
-SELECT
-  Q.transaction_id,
-  Q.date,
-  Q.branch_id,
-  Q.branch_name,
-  Q.kota,
-  Q.provinsi,
-  Q.rating_cabang,
-  Q.customer_name,
-  Q.product_id,
-  Q.product_name,
-  Q.actual_price,
-  Q.discount_percentage,
-  Q.persentase_gross_laba,
-  Q.nett_sales,
-  (Q.nett_sales * Q.persentase_gross_laba) AS nett_profit,
-  Q.rating_transaksi
-FROM (
+CREATE OR REPLACE TABLE `rakamin-kf-analytics-02062024.kimia_farma.kf_analyst` AS
+
+WITH base_calculations AS (
   SELECT
     ft.transaction_id,
     ft.date,
@@ -28,8 +12,10 @@ FROM (
     ft.customer_name,
     ft.product_id,
     pd.product_name,
-    ft.price AS actual_price,
+    ft.price AS actual_price, 
     ft.discount_percentage,
+    ft.rating AS rating_transaksi,
+    
     CASE
       WHEN ft.price <= 50000 THEN 0.10
       WHEN ft.price > 50000 AND ft.price <= 100000 THEN 0.15
@@ -37,12 +23,22 @@ FROM (
       WHEN ft.price > 300000 AND ft.price <= 500000 THEN 0.25
       WHEN ft.price > 500000 THEN 0.30
     END AS persentase_gross_laba,
-    (ft.price - (ft.price * (ft.discount_percentage / 100))) AS nett_sales,
-    ft.rating AS rating_transaksi
+    
+    (ft.price - (ft.price * (ft.discount_percentage / 100))) AS nett_sales
+    
   FROM
-    dataset_kimia_farma_rakamin.kf_final_transaction AS ft
+    `rakamin-kf-analytics-02062024.kimia_farma.kf_final_transaction` AS ft
   LEFT JOIN
-    dataset_kimia_farma_rakamin.kf_kantor_cabang AS kc ON ft.branch_id = kc.branch_id
+    `rakamin-kf-analytics-02062024.kimia_farma.kf_kantor_cabang` AS kc
+    ON ft.branch_id = kc.branch_id
   LEFT JOIN
-    dataset_kimia_farma_rakamin.kf_product AS pd ON ft.product_id = pd.product_id
-) Q;
+    `rakamin-kf-analytics-02062024.kimia_farma.kf_product` AS pd
+    ON ft.product_id = pd.product_id
+)
+
+SELECT
+  *,
+
+  (nett_sales * persentase_gross_laba) AS nett_profit
+FROM
+  base_calculations;
