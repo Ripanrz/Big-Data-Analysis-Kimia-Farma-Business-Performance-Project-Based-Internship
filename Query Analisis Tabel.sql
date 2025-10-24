@@ -1,22 +1,22 @@
-CREATE TABLE dataset_kimia_farma_rakamin.kf_analisisQ AS
+CREATE OR REPLACE TABLE dataset_kimia_farma_rakamin.kf_analisisQ AS
 SELECT
   Q.transaction_id,
-  Q.date, 
-  Q.branch_id, 
-  Q.branch_name, 
-  Q.kota, 
-  Q.provinsi, 
-  Q.rating_cabang, 
-  Q.customer_name, 
-  Q.product_id, 
-  Q.product_name, 
-  Q.actual_price, 
+  Q.date,
+  Q.branch_id,
+  Q.branch_name,
+  Q.kota,
+  Q.provinsi,
+  Q.rating_cabang,
+  Q.customer_name,
+  Q.product_id,
+  Q.product_name,
+  Q.actual_price,
   Q.discount_percentage,
   Q.persentase_gross_laba,
   Q.nett_sales,
-  (Q.nett_sales * Q.persentase_gross_laba) - (Q.actual_price * (1 - Q.discount_percentage)) AS nett_profit, 
+  (Q.nett_sales * Q.persentase_gross_laba) AS nett_profit,
   Q.rating_transaksi
-FROM ( 
+FROM (
   SELECT
     ft.transaction_id,
     ft.date,
@@ -31,13 +31,13 @@ FROM (
     ft.price AS actual_price,
     ft.discount_percentage,
     CASE
-      WHEN pd.price <= 50000 THEN 0.1
-      WHEN pd.price > 50000 AND pd.price <= 100000 THEN 0.15
-      WHEN pd.price > 100000 AND pd.price <= 300000 THEN 0.20
-      WHEN pd.price > 300000 AND pd.price <= 500000 THEN 0.25
-      WHEN pd.price > 500000 THEN 0.30
+      WHEN ft.price <= 50000 THEN 0.10
+      WHEN ft.price > 50000 AND ft.price <= 100000 THEN 0.15
+      WHEN ft.price > 100000 AND ft.price <= 300000 THEN 0.20
+      WHEN ft.price > 300000 AND ft.price <= 500000 THEN 0.25
+      WHEN ft.price > 500000 THEN 0.30
     END AS persentase_gross_laba,
-    (pd.price - (pd.price * ft.discount_percentage / 100)) AS nett_sales,
+    (ft.price - (ft.price * (ft.discount_percentage / 100))) AS nett_sales,
     ft.rating AS rating_transaksi
   FROM
     dataset_kimia_farma_rakamin.kf_final_transaction AS ft
