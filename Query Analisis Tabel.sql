@@ -1,4 +1,4 @@
-CREATE OR REPLACE TABLE `rakamin-kf-analytics-02062024.kimia_farma.kf_analyst` AS
+CREATE OR REPLACE TABLE `rakamin-kf-analytics-01062024.kimia_farma.kf_analyst` AS
 
 WITH base_calculations AS (
   SELECT
