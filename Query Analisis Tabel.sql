@@ -1,44 +1,36 @@
 CREATE OR REPLACE TABLE `rakamin-kf-analytics-01062024.kf_analytics.kf_final_task_dataset` AS
-
-WITH base_calculations AS (
-  SELECT
-    ft.transaction_id,
-    ft.date,
-    kc.branch_id,
-    kc.branch_name,
-    kc.kota,
-    kc.provinsi,
-    kc.rating AS rating_cabang,
-    ft.customer_name,
-    ft.product_id,
-    pd.product_name,
-    ft.price AS actual_price, 
-    ft.discount_percentage,
-    ft.rating AS rating_transaksi,
-    
-    CASE
-      WHEN ft.price <= 50000 THEN 0.10
-      WHEN ft.price > 50000 AND ft.price <= 100000 THEN 0.15
-      WHEN ft.price > 100000 AND ft.price <= 300000 THEN 0.20
-      WHEN ft.price > 300000 AND ft.price <= 500000 THEN 0.25
-      WHEN ft.price > 500000 THEN 0.30
-    END AS persentase_gross_laba,
-    
-    (ft.price - (ft.price * (ft.discount_percentage / 100))) AS nett_sales
-    
-  FROM
-    `rakamin-kf-analytics-02062024.kimia_farma.kf_final_transaction` AS ft
-  LEFT JOIN
-    `rakamin-kf-analytics-02062024.kimia_farma.kf_kantor_cabang` AS kc
-    ON ft.branch_id = kc.branch_id
-  LEFT JOIN
-    `rakamin-kf-analytics-02062024.kimia_farma.kf_product` AS pd
-    ON ft.product_id = pd.product_id
-)
-
 SELECT
-  *,
-
-  (nett_sales * persentase_gross_laba) AS nett_profit
-FROM
-  base_calculations;
+    t.transaction_id,
+    t.date,
+    c.branch_id,
+    c.branch_name,
+    c.kota,
+    c.provinsi,
+    c.rating AS rating_cabang,
+    t.customer_name,
+    p.product_id,
+    p.product_name,
+    p.price AS actual_price,
+    t.discount_percentage,
+    -- Logika Laba
+    CASE
+        WHEN p.price <= 50000 THEN 0.10
+        WHEN p.price > 50000 AND p.price <= 100000 THEN 0.15
+        WHEN p.price > 100000 AND p.price <= 300000 THEN 0.20
+        WHEN p.price > 300000 AND p.price <= 500000 THEN 0.25
+        ELSE 0.30
+    END AS persentase_gross_laba,
+    -- Nett Sales (Harga setelah diskon)
+    (p.price * (1 - t.discount_percentage)) AS nett_sales,
+    -- Nett Profit (Laba Kotor - Nominal Diskon)
+    ((p.price * (CASE 
+        WHEN p.price <= 50000 THEN 0.10
+        WHEN p.price > 50000 AND p.price <= 100000 THEN 0.15
+        WHEN p.price > 100000 AND p.price <= 300000 THEN 0.20
+        WHEN p.price > 300000 AND p.price <= 500000 THEN 0.25
+        ELSE 0.30 
+    END)) - (p.price * t.discount_percentage)) AS nett_profit,
+    t.rating AS rating_transaksi
+FROM `project_id.kf_analytics.kf_final_transaction` t
+LEFT JOIN `project_id.kf_analytics.kf_kantor_cabang` c ON t.branch_id = c.branch_id
+LEFT JOIN `project_id.kf_analytics.kf_product` p ON t.product_id = p.product_id;
